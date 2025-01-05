@@ -11,6 +11,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/siluetica
       - WEAVIATE_HOST=weaviate:8080
       - NODE_ENV=development
+    volumes:
+      - ./logs:/app/logs
     depends_on:
       - postgres
       - weaviate
