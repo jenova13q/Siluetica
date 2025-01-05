@@ -1,0 +1,207 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Пользователи и их предпочтения
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  preferences   UserPreferences?
+  interactions  InteractionHistory[]
+  wardrobeItems WardrobeItem[]
+  sets          Set[]
+  outfits       Outfit[]
+
+  @@map("users")
+}
+
+model UserPreferences {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  favoriteColors  String[]
+  preferredStyles String[]
+  dislikedItems   String[]
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@map("user_preferences")
+}
+
+model InteractionHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  request   String
+  response  String
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("interaction_history")
+}
+
+// Справочники
+model Trend {
+  id         Int    @id @default(autoincrement())
+  name       String
+  type       String
+  popularity Int
+  source     String
+
+  @@map("trends")
+}
+
+model Category {
+  id        Int    @id @default(autoincrement())
+  name      String
+  parentId  Int?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  items     WardrobeItem[]
+
+  @@map("categories")
+}
+
+// Гардероб
+model WardrobeItem {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  typeId       Int
+  season       String[]
+  style        String[]
+  warmthLevel  Int
+  description  String?
+  setId        Int?
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id])
+  category     Category  @relation(fields: [typeId], references: [id])
+  set          Set?      @relation(fields: [setId], references: [id])
+  photos       Photo[]
+  materials    ItemMaterial[]
+  attributes   ItemAttribute[]
+  outfitItems  OutfitItem[]
+
+  @@map("wardrobe_items")
+}
+
+model Photo {
+  id              Int          @id @default(autoincrement())
+  wardrobeItemId  Int
+  angle           String
+  imageUrl        String
+  wardrobeItem    WardrobeItem @relation(fields: [wardrobeItemId], references: [id])
+
+  @@map("photos")
+}
+
+model Material {
+  id          Int            @id @default(autoincrement())
+  name        String
+  properties  String[]
+  items       ItemMaterial[]
+
+  @@map("materials")
+}
+
+model Texture {
+  id          Int            @id @default(autoincrement())
+  name        String
+  materials   ItemMaterial[]
+
+  @@map("textures")
+}
+
+model Pattern {
+  id          Int            @id @default(autoincrement())
+  name        String
+  materials   ItemMaterial[]
+
+  @@map("patterns")
+}
+
+model ItemMaterial {
+  id              Int          @id @default(autoincrement())
+  wardrobeItemId  Int
+  materialId      Int
+  percentage      Float
+  textureId       Int?
+  patternId       Int?
+
+  wardrobeItem    WardrobeItem @relation(fields: [wardrobeItemId], references: [id])
+  material        Material     @relation(fields: [materialId], references: [id])
+  texture         Texture?     @relation(fields: [textureId], references: [id])
+  pattern         Pattern?     @relation(fields: [patternId], references: [id])
+
+  @@map("item_materials")
+}
+
+model Attribute {
+  id        Int             @id @default(autoincrement())
+  name      String
+  items     ItemAttribute[]
+
+  @@map("attributes")
+}
+
+model ItemAttribute {
+  id              Int          @id @default(autoincrement())
+  wardrobeItemId  Int
+  attributeId     Int
+  value           String
+
+  wardrobeItem    WardrobeItem @relation(fields: [wardrobeItemId], references: [id])
+  attribute       Attribute    @relation(fields: [attributeId], references: [id])
+
+  @@map("item_attributes")
+}
+
+model Set {
+  id         Int            @id @default(autoincrement())
+  name       String
+  userId     Int
+  addedDate  DateTime      @default(now())
+  
+  user       User          @relation(fields: [userId], references: [id])
+  items      WardrobeItem[]
+
+  @@map("sets")
+}
+
+model Outfit {
+  id         Int          @id @default(autoincrement())
+  userId     Int
+  name       String
+  eventDesc  String?
+  weather    String?
+  createdAt  DateTime    @default(now())
+
+  user       User        @relation(fields: [userId], references: [id])
+  items      OutfitItem[]
+
+  @@map("outfits")
+}
+
+model OutfitItem {
+  id              Int          @id @default(autoincrement())
+  outfitId        Int
+  wardrobeItemId  Int
+  layerOrder      Int
+
+  outfit          Outfit       @relation(fields: [outfitId], references: [id])
+  wardrobeItem    WardrobeItem @relation(fields: [wardrobeItemId], references: [id])
+
+  @@map("outfit_items")
+}
